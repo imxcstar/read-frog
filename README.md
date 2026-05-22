@@ -230,6 +230,19 @@ ReadFrog is dual-licensed under GPLv3 and a commercial license.
 
 See [CONTRIBUTING.md](./CONTRIBUTING.md) for contributor licensing terms.
 
+#### Building for iOS / macOS Safari (experimental)
+
+The Safari Web Extension is built on top of the same WXT codebase, wrapped in
+an Xcode project. Requires macOS + Xcode 16+. See
+[`apple/README.md`](./apple/README.md) for full instructions:
+
+```bash
+pnpm build:safari            # produces .output/safari-mv3/
+pnpm safari:bootstrap        # first time only: generates apple/ReadFrog.xcodeproj
+pnpm build:safari:ios        # subsequent builds: rebuild + sync resources
+open apple/ReadFrog.xcodeproj
+```
+
 <a href="https://github.com/mengxi-ream/read-frog/graphs/contributors">
   <table>
     <tr>

@@ -111,7 +111,13 @@ function getInjectionTarget(details: FrameInjectionDetails) {
 }
 
 async function getFrameSnapshot(tabId: number): Promise<FrameInfoForSiteControl[]> {
-  return await browser.webNavigation.getAllFrames({ tabId }) ?? []
+  const webNavigation = (browser as typeof browser & {
+    webNavigation?: { getAllFrames?: (opts: { tabId: number }) => Promise<FrameInfoForSiteControl[] | null | undefined> }
+  }).webNavigation
+  if (!webNavigation?.getAllFrames) {
+    return []
+  }
+  return await webNavigation.getAllFrames({ tabId }) ?? []
 }
 
 function isFullRuntimeAutoInjectUrl(url: string | undefined): url is string {
@@ -271,7 +277,24 @@ export async function injectHostContentIntoCurrentTabIframesAfterNodeTranslation
 
 export function setupIframeInjection() {
   browser.tabs.onRemoved.addListener(clearTabDocumentState)
-  browser.webNavigation.onBeforeNavigate.addListener((details) => {
+
+  // iOS Safari does not implement `webNavigation`. Iframe injection relies on
+  // it for fine-grained per-frame events, so we degrade by skipping eager
+  // injection — content scripts declared in the manifest still load into all
+  // matched frames, which covers the common case.
+  interface WebNavOnBeforeDetails { frameId: number, tabId: number, url: string }
+  interface WebNavOnCompletedDetails { frameId: number, tabId: number, url: string, documentId?: string, parentFrameId?: number }
+  const webNavigation = (browser as typeof browser & {
+    webNavigation?: {
+      onBeforeNavigate?: { addListener?: (l: (d: WebNavOnBeforeDetails) => void) => void }
+      onCompleted?: { addListener?: (l: (d: WebNavOnCompletedDetails) => void | Promise<void>) => void }
+    }
+  }).webNavigation
+  if (!webNavigation?.onBeforeNavigate?.addListener || !webNavigation?.onCompleted?.addListener) {
+    return
+  }
+
+  webNavigation.onBeforeNavigate.addListener((details) => {
     if (details.frameId === 0) {
       clearTabDocumentState(details.tabId)
       if (isFullRuntimeAutoInjectUrl(details.url)) {
@@ -286,7 +309,7 @@ export function setupIframeInjection() {
   // Only page translation eagerly injects host content into newly completed
   // subframes. Top-frame node translation can separately scan existing iframes
   // once, but it does not enable late iframe injection.
-  browser.webNavigation.onCompleted.addListener(async (details) => {
+  webNavigation.onCompleted.addListener(async (details) => {
     if (details.frameId === 0) {
       if (!isFullRuntimeAutoInjectUrl(details.url)) {
         fullRuntimeAutoInjectUrlByTab.delete(details.tabId)

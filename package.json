@@ -9,11 +9,14 @@
     "build": "wxt build",
     "build:edge": "wxt build -b edge",
     "build:firefox": "wxt build -b firefox --mv3",
+    "build:safari": "wxt build -b safari --mv3",
+    "build:safari:ios": "pnpm build:safari && node scripts/sync-safari-resources.mjs",
     "build:analyze": "wxt build --analyze",
     "dev:local": "WXT_USE_LOCAL_PACKAGES=true wxt",
     "dev": "wxt",
     "dev:edge": "wxt -b edge",
     "dev:firefox": "wxt -b firefox --mv3",
+    "dev:safari": "wxt -b safari --mv3",
     "lint": "eslint",
     "lint:fix": "eslint --fix",
     "postinstall": "WXT_SKIP_ENV_VALIDATION=true wxt prepare",
@@ -25,7 +28,10 @@
     "zip": "wxt zip",
     "zip:edge": "wxt zip -b edge",
     "zip:firefox": "wxt zip -b firefox --mv3",
+    "zip:safari": "wxt zip -b safari --mv3",
     "zip:all": "pnpm zip && pnpm zip:edge && pnpm zip:firefox",
+    "safari:bootstrap": "node scripts/bootstrap-safari-xcode.mjs",
+    "safari:sync": "node scripts/sync-safari-resources.mjs",
     "release": "changeset tag && git push origin --tags",
     "prepare": "husky"
   },
@@ -178,6 +184,12 @@
         "executor": "nx:run-commands",
         "options": {
           "command": "wxt build -b firefox"
+        }
+      },
+      "build:safari": {
+        "executor": "nx:run-commands",
+        "options": {
+          "command": "wxt build -b safari --mv3"
         }
       },
       "test": {

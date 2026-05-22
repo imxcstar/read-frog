@@ -1,0 +1,8 @@
+# Placeholder.
+#
+# The actual Resources/ contents are produced by:
+#   pnpm build:safari && pnpm safari:sync
+#
+# After bootstrap (`pnpm safari:bootstrap`), the Xcode project's
+# ReadFrogExtension target references this folder, and the generated assets
+# under `.output/safari-mv3/` get copied here.

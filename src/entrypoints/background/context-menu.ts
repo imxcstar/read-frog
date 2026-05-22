@@ -13,6 +13,17 @@ export const MENU_ID_TRANSLATE = "read-frog-translate"
 export const MENU_ID_SELECTION_TRANSLATE = "read-frog-selection-translate"
 export const MENU_ID_SELECTION_CUSTOM_ACTION_PREFIX = "read-frog-selection-custom-action:"
 
+/**
+ * Returns true when the runtime exposes the `contextMenus` API.
+ * iOS Safari Web Extensions do not implement `contextMenus`; macOS Safari and
+ * all Chromium/Firefox builds do. Calling any method on a missing API would
+ * throw, so we short-circuit registration and initialization when it's absent.
+ */
+function isContextMenusAvailable(): boolean {
+  const api = (browser as typeof browser & { contextMenus?: unknown }).contextMenus
+  return typeof api === "object" && api !== null
+}
+
 function getSelectionCustomActionMenuId(actionId: string) {
   return `${MENU_ID_SELECTION_CUSTOM_ACTION_PREFIX}${actionId}`
 }
@@ -23,6 +34,13 @@ function getSelectionCustomActionMenuId(actionId: string) {
  * before Chrome completes initialization
  */
 export function registerContextMenuListeners() {
+  if (!isContextMenusAvailable()) {
+    // iOS Safari does not expose `browser.contextMenus`. Skip listener
+    // registration entirely; other UI surfaces (selection toolbar, popup)
+    // remain functional.
+    return
+  }
+
   // Listen for config changes to update context menu
   storage.watch<Config>(`local:${CONFIG_STORAGE_KEY}`, async (newConfig) => {
     if (newConfig) {
@@ -75,6 +93,10 @@ export function registerContextMenuListeners() {
  * This can be called asynchronously after listeners are registered
  */
 export async function initializeContextMenu() {
+  if (!isContextMenusAvailable()) {
+    return
+  }
+
   // Ensure config is initialized before setting up context menu
   const config = await ensureInitializedConfig()
   if (!config) {

@@ -46,3 +46,11 @@ docs/
 scripts/output/
 
 reference/
+
+# Xcode / Safari Web Extension scaffold (see apple/README.md)
+apple/**/build/
+apple/**/DerivedData/
+apple/**/*.xcuserstate
+apple/**/xcuserdata/
+apple/ReadFrogExtension/Resources/*
+!apple/ReadFrogExtension/Resources/.gitkeep

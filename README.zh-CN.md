@@ -228,6 +228,17 @@ ReadFrog 采用 GPLv3 和商业许可双重授权。
 
 贡献者许可条款请参阅 [CONTRIBUTING.md](./CONTRIBUTING.md)。
 
+#### 构建 iOS / macOS Safari 扩展（实验性）
+
+Safari Web Extension 基于同一份 WXT 代码,通过 Xcode 工程打包。需 macOS + Xcode 16+,详细步骤见 [`apple/README.md`](./apple/README.md):
+
+```bash
+pnpm build:safari            # 产物输出到 .output/safari-mv3/
+pnpm safari:bootstrap        # 首次执行:生成 apple/ReadFrog.xcodeproj
+pnpm build:safari:ios        # 日常构建:重新构建 + 同步资源
+open apple/ReadFrog.xcodeproj
+```
+
 <a href="https://github.com/mengxi-ream/read-frog/graphs/contributors">
   <table>
     <tr>

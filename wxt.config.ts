@@ -36,12 +36,14 @@ export default defineConfig({
       "storage",
       "tabs",
       "alarms",
-      "cookies",
-      "contextMenus",
-      "identity",
+      // Safari (especially on iOS) restricts/omits these APIs. Excluding them
+      // keeps the App Store review happier and avoids unnecessary user prompts.
+      ...(browser !== "safari" ? ["cookies"] : []),
+      ...(browser !== "safari" ? ["contextMenus"] : []),
+      ...(browser !== "safari" ? ["identity"] : []),
+      ...(browser !== "safari" ? ["webNavigation"] : []),
       "scripting",
-      "webNavigation",
-      ...(browser !== "firefox" ? ["offscreen", "sidePanel"] : []),
+      ...(browser !== "firefox" && browser !== "safari" ? ["offscreen", "sidePanel"] : []),
     ],
     host_permissions: [
       "*://*/*", // Required for scripting.executeScript in any frame
@@ -69,6 +71,21 @@ export default defineConfig({
             required: ["none"],
             optional: ["technicalAndInteraction"],
           },
+        },
+      },
+    }),
+    // Safari (iOS / macOS) Web Extension settings.
+    // Safari accepts a Firefox-style MV3 manifest. We avoid emitting
+    // `browser_specific_settings.gecko` and align the CSP with Firefox's
+    // (no `upgrade-insecure-requests`, which would break custom HTTP providers
+    // such as LAN-hosted Ollama instances).
+    ...(browser === "safari" && {
+      content_security_policy: {
+        extension_pages: "script-src 'self' 'wasm-unsafe-eval'; object-src 'self';",
+      },
+      browser_specific_settings: {
+        safari: {
+          strict_min_version: "17.0",
         },
       },
     }),

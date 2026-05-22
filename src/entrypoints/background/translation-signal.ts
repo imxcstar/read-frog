@@ -216,18 +216,23 @@ export function translationMessage() {
   })
 
   // Clear translation state only when the tab leaves the origin where it was enabled.
-  browser.webNavigation.onCommitted.addListener(async (details) => {
-    // Only handle main frame navigations, not iframes
-    if (details.frameId !== 0)
-      return
+  // iOS Safari does not implement `webNavigation`; we degrade silently and let
+  // the existing tab-update listener (above) handle reload-like transitions.
+  const webNavigation = (browser as typeof browser & { webNavigation?: { onCommitted?: { addListener?: (l: (details: { frameId: number, tabId: number, url: string }) => void) => void } } }).webNavigation
+  if (webNavigation?.onCommitted?.addListener) {
+    webNavigation.onCommitted.addListener(async (details) => {
+      // Only handle main frame navigations, not iframes
+      if (details.frameId !== 0)
+        return
 
-    const state = await getPageTranslationState(details.tabId)
-    if (!state?.enabled)
-      return
+      const state = await getPageTranslationState(details.tabId)
+      if (!state?.enabled)
+        return
 
-    if (isPageTranslationStateInUrlScope(state, details.url))
-      return
+      if (isPageTranslationStateInUrlScope(state, details.url))
+        return
 
-    await storage.removeItem(getTranslationStateKey(details.tabId))
-  })
+      await storage.removeItem(getTranslationStateKey(details.tabId))
+    })
+  }
 }

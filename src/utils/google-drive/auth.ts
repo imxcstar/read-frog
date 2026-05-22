@@ -5,7 +5,17 @@ import { GOOGLE_DRIVE_TOKEN_STORAGE_KEY } from "../constants/config"
 import { logger } from "../logger"
 
 const GOOGLE_CLIENT_ID = env.WXT_GOOGLE_CLIENT_ID ?? "YOUR_CLIENT_ID"
-const GOOGLE_REDIRECT_URI = browser.identity.getRedirectURL()
+// `browser.identity` is not available on Safari (especially iOS). Resolve the
+// redirect URI lazily so module evaluation does not crash; callers go through
+// `authenticateGoogleDriveAndSaveTokenToStorage` which itself throws a useful
+// error on unsupported platforms.
+function getGoogleRedirectURI(): string {
+  const identity = (browser as typeof browser & { identity?: { getRedirectURL?: () => string } }).identity
+  if (!identity || typeof identity.getRedirectURL !== "function") {
+    return ""
+  }
+  return identity.getRedirectURL()
+}
 const GOOGLE_SCOPES = [
   "https://www.googleapis.com/auth/drive.appdata",
   "https://www.googleapis.com/auth/userinfo.email",
@@ -57,14 +67,23 @@ async function getTokenFromStorage(): Promise<GoogleAuthToken | null> {
  */
 export async function authenticateGoogleDriveAndSaveTokenToStorage(): Promise<string> {
   try {
+    const identity = (browser as typeof browser & {
+      identity?: {
+        launchWebAuthFlow?: (opts: { url: string, interactive: boolean }) => Promise<string | undefined>
+      }
+    }).identity
+    if (!identity || typeof identity.launchWebAuthFlow !== "function") {
+      throw new Error("Google Drive sign-in is not supported on this browser (no chrome.identity API).")
+    }
+
     const authUrl = new URL("https://accounts.google.com/o/oauth2/v2/auth")
     authUrl.searchParams.set("client_id", GOOGLE_CLIENT_ID)
     authUrl.searchParams.set("response_type", "token")
-    authUrl.searchParams.set("redirect_uri", GOOGLE_REDIRECT_URI)
+    authUrl.searchParams.set("redirect_uri", getGoogleRedirectURI())
     authUrl.searchParams.set("scope", GOOGLE_SCOPES.join(" "))
     authUrl.searchParams.set("prompt", "select_account")
 
-    const responseUrl = await browser.identity.launchWebAuthFlow({
+    const responseUrl = await identity.launchWebAuthFlow({
       url: authUrl.toString(),
       interactive: true,
     })
